@@ -1,37 +1,34 @@
 <?php
 session_start();
+include('includes/db.php');
 
-if ($_SERVER["REQUEST_METHOD"] === "POST") {
-    $item = [
-        'id' => $_POST['product_id'],
-        'name' => $_POST['product_name'],
-        'price' => $_POST['product_price'],
-        'image' => $_POST['product_image'],
-        'quantity' => 1
-    ];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['product_id'])) {
+    $productId = $_POST['product_id'];
 
-    // If cart doesn't exist, create it
-    if (!isset($_SESSION['cart'])) {
-        $_SESSION['cart'] = [];
-    }
+    // Fetch product from DB
+    $stmt = $pdo->prepare("SELECT * FROM products WHERE id = ?");
+    $stmt->execute([$productId]);
+    $product = $stmt->fetch();
 
-    $found = false;
+    if ($product) {
+        if (!isset($_SESSION['cart'])) {
+            $_SESSION['cart'] = [];
+        }
 
-    // If item already in cart, increase quantity
-    foreach ($_SESSION['cart'] as &$cartItem) {
-        if ($cartItem['id'] == $item['id']) {
-            $cartItem['quantity']++;
-            $found = true;
-            break;
+        // Add to cart or increase quantity
+        if (isset($_SESSION['cart'][$productId])) {
+            $_SESSION['cart'][$productId]['quantity'] += 1;
+        } else {
+            $_SESSION['cart'][$productId] = [
+                'id' => $product['id'],
+                'name' => $product['name'],
+                'price' => $product['price'],
+                'image' => $product['image'],
+                'quantity' => 1
+            ];
         }
     }
-
-    // If not found, add new item
-    if (!$found) {
-        $_SESSION['cart'][] = $item;
-    }
-
-    header("Location: index.php");
-    exit();
 }
-?>
+
+header("Location: index.php");
+exit;
