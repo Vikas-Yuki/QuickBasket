@@ -1,0 +1,1 @@
+<?php // User register page ?>
