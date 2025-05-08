@@ -1,27 +1,35 @@
 <?php
 session_start();
+if (!isset($_SESSION['user_id'])) {
+  header("Location: user/login.php"); // or the correct path to your login page
+  exit;
+}
+
 include('includes/db.php');
 
-// Handle removal
+// Handle item removal
 if (isset($_GET['remove'])) {
     $id = $_GET['remove'];
     unset($_SESSION['cart'][$id]);
+    header("Location: cart.php");
+    exit;
 }
 
-// Update quantity
+// Update quantities
 if (isset($_POST['update_qty'])) {
     foreach ($_POST['qty'] as $id => $qty) {
-        if ($qty > 0) {
-            $_SESSION['cart'][$id] = $qty;
+        if ($qty > 0 && isset($_SESSION['cart'][$id])) {
+            $_SESSION['cart'][$id]['quantity'] = (int)$qty;
         } else {
             unset($_SESSION['cart'][$id]);
         }
     }
+    header("Location: cart.php");
+    exit;
 }
 
-$cart_items = isset($_SESSION['cart']) ? $_SESSION['cart'] : [];
+$cart_items = $_SESSION['cart'] ?? [];
 $total = 0;
-
 ?>
 
 <!DOCTYPE html>
@@ -41,47 +49,56 @@ $total = 0;
     <div class="alert alert-info">Your cart is empty.</div>
   <?php else: ?>
     <form method="POST">
-      <table class="table table-bordered">
-        <thead>
+      <table class="table table-bordered align-middle">
+        <thead class="table-light">
           <tr>
             <th>Product</th>
             <th>Image</th>
             <th>Price (₹)</th>
             <th>Quantity</th>
-            <th>Total (₹)</th>
+            <th>Subtotal (₹)</th>
             <th>Remove</th>
           </tr>
         </thead>
         <tbody>
-        <?php
-        foreach ($cart_items as $id => $qty):
+        <?php foreach ($cart_items as $id => $item): 
+            // Validate structure
+            if (!isset($item['quantity'])) continue;
+
             $stmt = $pdo->prepare("SELECT * FROM products WHERE id = ?");
             $stmt->execute([$id]);
             $product = $stmt->fetch();
 
             if (!$product) continue;
 
-            $item_total = $product['price'] * $qty;
+            $quantity = (int)$item['quantity'];
+            $item_total = $quantity * $product['price'];
             $total += $item_total;
         ?>
           <tr>
             <td><?= htmlspecialchars($product['name']) ?></td>
-            <td><img src="assets/images/<?= $product['image'] ?>" alt="" style="width: 60px;"></td>
-            <td><?= number_format($product['price'], 2) ?></td>
+            <td><img src="assets/images/<?= htmlspecialchars($product['image']) ?>" alt="" style="width: 60px;"></td>
+            <td>₹<?= number_format($product['price'], 2) ?></td>
             <td>
-              <input type="number" name="qty[<?= $id ?>]" value="<?= $qty ?>" min="1" class="form-control" style="width:80px;">
+              <input type="number" name="qty[<?= $id ?>]" value="<?= $quantity ?>" min="1" class="form-control" style="width: 80px;">
             </td>
-            <td><?= number_format($item_total, 2) ?></td>
-            <td><a href="?remove=<?= $id ?>" class="btn btn-danger btn-sm">❌</a></td>
+            <td>₹<?= number_format($item_total, 2) ?></td>
+            <td>
+              <a href="?remove=<?= $id ?>" class="btn btn-sm btn-danger">
+                <i class="bi bi-trash"></i>
+              </a>
+            </td>
           </tr>
         <?php endforeach; ?>
         </tbody>
       </table>
 
-      <div class="d-flex justify-content-between">
+      <div class="d-flex justify-content-between align-items-center">
         <div>
-          <button type="submit" name="update_qty" class="btn btn-primary">Update Quantities</button>
-          <a href="index.php" class="btn btn-secondary">Continue Shopping</a>
+          <button type="submit" name="update_qty" class="btn btn-primary">
+            <i class="bi bi-arrow-repeat"></i> Update Quantities
+          </button>
+          <a href="index.php" class="btn btn-secondary">← Continue Shopping</a>
         </div>
         <div>
           <h4>Total: ₹<?= number_format($total, 2) ?></h4>

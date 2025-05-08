@@ -1,6 +1,11 @@
 <?php
 session_start();
-include('includes/db.php');
+if (!isset($_SESSION['user_id'])) {
+    header("Location: user/login.php"); // redirect to login if not logged in
+    exit;
+}
+
+include('./includes/db.php');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['product_id'])) {
     $productId = $_POST['product_id'];

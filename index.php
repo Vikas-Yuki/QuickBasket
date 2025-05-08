@@ -93,10 +93,11 @@ $products = $stmt->fetchAll();
                             <h5><?= htmlspecialchars($product['name']) ?></h5>
                             <p><?= htmlspecialchars($product['description']) ?></p>
                             <p class="price">₹<?= htmlspecialchars($product['price']) ?></p>
-                            <form method="POST" action="./user/add_to_cart.php">
-  <input type="hidden" name="product_id" value="<?= $product['id'] ?>">
-  <button type="submit" class="btn btn-primary">Add to Cart</button>
+                            <form action="add_to_cart.php" method="POST" style="display: inline;">
+    <input type="hidden" name="product_id" value="<?= $product['id'] ?>">
+    <button type="submit" class="btn btn-outline-primary">Add to Cart</button>
 </form>
+
                         </div>
                     </div>
                 <?php endforeach; ?>
